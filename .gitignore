@@ -1,0 +1,24 @@
+# ---------- Frontend ----------
+frontend/node_modules/
+frontend/dist/
+
+# ---------- Backend ----------
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/HELP.md
+
+# The React build is copied here by build.sh; it's generated, not source.
+backend/src/main/resources/static/*
+!backend/src/main/resources/static/.gitkeep
+
+# ---------- Secrets / env ----------
+.env
+*.env
+
+# ---------- IDE / OS ----------
+.idea/
+.vscode/
+*.iml
+*.iws
+.DS_Store
+Thumbs.db
