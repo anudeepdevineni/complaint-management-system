@@ -8,11 +8,26 @@ complaints **auto-escalate**; and admins get analytics, charts, and a full audit
 > **Tech:** React 19 · Spring Boot 3 · MySQL · JWT auth · Google Gemini AI
 > **Full-stack** — React SPA served by the Spring Boot backend as a single deployable JAR.
 
-<!--
-  📸 TIP: add a screenshot or short GIF of the admin dashboard here — it's the
-  first thing recruiters look at. Put the image in a /docs folder and link it:
-  ![Admin dashboard](docs/admin-dashboard.png)
--->
+![Admin dashboard](docs/admin-dashboard.png)
+
+---
+
+## Screenshots & demos
+
+| | |
+|---|---|
+| **Submit a complaint** (student) — AI auto-classifies & assigns it | **Admin — history timeline** (audit trail) |
+| ![Submit complaint](docs/submit-complaint.gif) | ![History timeline](docs/history-timeline.gif) |
+
+**Admin — filter complaints by category**
+
+![Category filter](docs/admin-filter.gif)
+
+<p align="center">
+  <img src="docs/login.png" alt="Login" width="45%">
+  &nbsp;
+  <img src="docs/signup.png" alt="Signup" width="45%">
+</p>
 
 ---
 
