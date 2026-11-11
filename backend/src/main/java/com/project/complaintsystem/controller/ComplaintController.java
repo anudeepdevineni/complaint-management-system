@@ -3,135 +3,90 @@ package com.project.complaintsystem.controller;
 import com.project.complaintsystem.dto.ComplaintHistoryResponse;
 import com.project.complaintsystem.dto.ComplaintResponse;
 import com.project.complaintsystem.model.Complaint;
-import com.project.complaintsystem.security.JwtUtil;
 import com.project.complaintsystem.service.ComplaintService;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Complaint endpoints. Which role can call which endpoint is set in SecurityConfig;
+ * here the logged-in user's email comes from auth.getName().
+ */
 @RestController
 @RequestMapping("/api/complaints")
 public class ComplaintController {
 
     private final ComplaintService complaintService;
-    private final JwtUtil jwtUtil;
 
-    public ComplaintController(ComplaintService complaintService, JwtUtil jwtUtil) {
+    public ComplaintController(ComplaintService complaintService) {
         this.complaintService = complaintService;
-        this.jwtUtil = jwtUtil;
     }
 
     // Submit complaint (STUDENT)
     @PostMapping
-    public ComplaintResponse submitComplaint(
-            @RequestBody Map<String, String> req,
-            @RequestHeader("Authorization") String header
-    ) {
-        String email = jwtUtil.extractEmail(tokenOf(header));
-
+    public ComplaintResponse submitComplaint(@RequestBody Map<String, String> req,
+                                             Authentication auth) {
         Complaint saved = complaintService.submitComplaint(
                 req.get("title"),
                 req.get("description"),
-                email
+                auth.getName()
         );
         return ComplaintResponse.from(saved);
     }
 
-    // Get all complaints (ADMIN ONLY)
+    // Get all complaints (ADMIN)
     @GetMapping
-    public List<ComplaintResponse> getAllComplaints(
-            @RequestHeader("Authorization") String header
-    ) {
-        requireRole(header, "ADMIN");
+    public List<ComplaintResponse> getAllComplaints() {
         return toResponses(complaintService.getAllComplaints());
     }
 
-    // Get complaints by category (ADMIN ONLY)
+    // Get complaints by category (ADMIN)
     @GetMapping("/category/{category}")
-    public List<ComplaintResponse> getComplaintsByCategory(
-            @PathVariable String category,
-            @RequestHeader("Authorization") String header
-    ) {
-        requireRole(header, "ADMIN");
+    public List<ComplaintResponse> getComplaintsByCategory(@PathVariable String category) {
         return toResponses(complaintService.getComplaintsByCategory(category));
     }
 
-    // Get all categories with complaint counts (ADMIN ONLY)
+    // Complaint counts per category (ADMIN)
     @GetMapping("/categories/summary")
-    public Map<String, Long> getCategorySummary(
-            @RequestHeader("Authorization") String header
-    ) {
-        requireRole(header, "ADMIN");
+    public Map<String, Long> getCategorySummary() {
         return complaintService.getCategorySummary();
     }
 
-    // Get my complaints (STUDENT)
+    // My complaints (STUDENT)
     @GetMapping("/my")
-    public List<ComplaintResponse> getMyComplaints(
-            @RequestHeader("Authorization") String header
-    ) {
-        String email = jwtUtil.extractEmail(tokenOf(header));
-        return toResponses(complaintService.getMyComplaints(email));
+    public List<ComplaintResponse> getMyComplaints(Authentication auth) {
+        return toResponses(complaintService.getMyComplaints(auth.getName()));
     }
 
-    // Get assigned complaints (STAFF ONLY)
+    // Complaints assigned to me (STAFF)
     @GetMapping("/assigned")
-    public List<ComplaintResponse> getAssignedComplaints(
-            @RequestHeader("Authorization") String header
-    ) {
-        requireRole(header, "STAFF");
-        String staffEmail = jwtUtil.extractEmail(tokenOf(header));
-        return toResponses(complaintService.getAssignedComplaints(staffEmail));
+    public List<ComplaintResponse> getAssignedComplaints(Authentication auth) {
+        return toResponses(complaintService.getAssignedComplaints(auth.getName()));
     }
 
-    // Update status (STAFF ONLY - assigned complaints)
+    // Update status of an assigned complaint (STAFF)
     @PutMapping("/status")
-    public ComplaintResponse updateStatus(
-            @RequestParam Long id,
-            @RequestParam String status,
-            @RequestHeader("Authorization") String header
-    ) {
-        requireRole(header, "STAFF");
-        String staffEmail = jwtUtil.extractEmail(tokenOf(header));
-        Complaint updated = complaintService.updateStatus(id, status, staffEmail);
+    public ComplaintResponse updateStatus(@RequestParam Long id,
+                                          @RequestParam String status,
+                                          Authentication auth) {
+        Complaint updated = complaintService.updateStatus(id, status, auth.getName());
         return ComplaintResponse.from(updated);
     }
 
-    // Status-change history for one complaint (ADMIN ONLY)
+    // Status-change history for one complaint (ADMIN)
     @GetMapping("/{id}/history")
-    public List<ComplaintHistoryResponse> getHistory(
-            @PathVariable Long id,
-            @RequestHeader("Authorization") String header
-    ) {
-        requireRole(header, "ADMIN");
+    public List<ComplaintHistoryResponse> getHistory(@PathVariable Long id) {
         return complaintService.getHistory(id).stream()
                 .map(ComplaintHistoryResponse::from)
                 .toList();
     }
 
-    // Analytics (ADMIN ONLY)
+    // Counts by status (ADMIN)
     @GetMapping("/analytics")
-    public Map<String, Long> getAnalytics(
-            @RequestHeader("Authorization") String header
-    ) {
-        requireRole(header, "ADMIN");
+    public Map<String, Long> getAnalytics() {
         return complaintService.getAnalytics();
-    }
-
-    // ===== small helpers to keep the endpoints above tidy =====
-
-    // Strips the "Bearer " prefix off the Authorization header.
-    private String tokenOf(String header) {
-        return header.substring(7);
-    }
-
-    // Reads the role from the token and blocks the request if it doesn't match.
-    private void requireRole(String header, String requiredRole) {
-        String role = jwtUtil.extractRole(tokenOf(header));
-        if (!requiredRole.equals(role)) {
-            throw new RuntimeException("Only " + requiredRole.toLowerCase() + " allowed");
-        }
     }
 
     private List<ComplaintResponse> toResponses(List<Complaint> complaints) {

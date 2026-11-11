@@ -29,7 +29,7 @@ public class AuthController {
         return UserResponse.from(user);
     }
 
-    // Fixed: Now uses @RequestBody and LoginRequest
+    // Returns the signed JWT as a plain string.
     @PostMapping("/login")
     public String login(@RequestBody LoginRequest req){
         return authService.login(req.getEmail(), req.getPassword());

@@ -2,18 +2,21 @@ package com.project.complaintsystem.config;
 
 import com.project.complaintsystem.model.*;
 import com.project.complaintsystem.repository.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * Fills the lookup tables (roles, departments, priorities, statuses, categories)
- * on startup if they are empty. This replaces having to run seed.sql by hand and
- * means a fresh or reset database "just works".
+ * on startup if they are empty, so a fresh database needs no manual SQL.
+ * Also creates the admin account from ADMIN_EMAIL / ADMIN_PASSWORD if it doesn't
+ * exist yet, since admins can't sign up through the API.
  *
- * Each block only inserts when its table is empty, so restarting the app never
- * creates duplicate rows.
+ * Each block only inserts when its rows are missing, so restarting the app never
+ * creates duplicates.
  */
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -23,17 +26,29 @@ public class DataSeeder implements CommandLineRunner {
     private final PriorityRepository priorityRepository;
     private final StatusRepository statusRepository;
     private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+
+    @Value("${admin.email:}")
+    private String adminEmail;
+
+    @Value("${admin.password:}")
+    private String adminPassword;
+
+    @Value("${admin.name:Admin}")
+    private String adminName;
 
     public DataSeeder(RoleRepository roleRepository,
                       DepartmentRepository departmentRepository,
                       PriorityRepository priorityRepository,
                       StatusRepository statusRepository,
-                      CategoryRepository categoryRepository) {
+                      CategoryRepository categoryRepository,
+                      UserRepository userRepository) {
         this.roleRepository = roleRepository;
         this.departmentRepository = departmentRepository;
         this.priorityRepository = priorityRepository;
         this.statusRepository = statusRepository;
         this.categoryRepository = categoryRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -43,6 +58,23 @@ public class DataSeeder implements CommandLineRunner {
         seedPriorities();
         seedStatuses();
         seedCategories();
+        seedAdmin();
+    }
+
+    private void seedAdmin() {
+        if (adminEmail.isBlank() || adminPassword.isBlank()) {
+            System.out.println("[DataSeeder] ADMIN_EMAIL / ADMIN_PASSWORD not set, no admin created");
+            return;
+        }
+        if (userRepository.existsByEmail(adminEmail)) return;
+
+        User admin = new User();
+        admin.setName(adminName);
+        admin.setEmail(adminEmail);
+        admin.setPassword(new BCryptPasswordEncoder().encode(adminPassword));
+        admin.setRole(roleRepository.findByName("ADMIN").orElseThrow());
+        userRepository.save(admin);
+        System.out.println("[DataSeeder] Created admin " + adminEmail);
     }
 
     private void seedRoles() {

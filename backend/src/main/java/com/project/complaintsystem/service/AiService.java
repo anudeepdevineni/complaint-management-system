@@ -15,8 +15,7 @@ public class AiService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    // Model name is configurable; default is a currently-available Flash model.
-    // (The old gemini-2.5-flash now returns 404 "no longer available to new users".)
+    // Override with gemini.model in application.properties.
     @Value("${gemini.model:gemini-2.0-flash}")
     private String model;
 

@@ -6,6 +6,7 @@ import com.project.complaintsystem.model.Status;
 import com.project.complaintsystem.repository.ComplaintHistoryRepository;
 import com.project.complaintsystem.repository.ComplaintRepository;
 import com.project.complaintsystem.repository.StatusRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,10 @@ public class EscalationScheduler {
     private final StatusRepository statusRepository;
     private final ComplaintHistoryRepository complaintHistoryRepository;
 
+    // Unresolved complaints older than this are escalated (default 48 hours)
+    @Value("${escalation.after-hours:48}")
+    private long escalateAfterHours;
+
     public EscalationScheduler(ComplaintRepository complaintRepository,
                                StatusRepository statusRepository,
                                ComplaintHistoryRepository complaintHistoryRepository) {
@@ -27,7 +32,9 @@ public class EscalationScheduler {
         this.complaintHistoryRepository = complaintHistoryRepository;
     }
 
-    @Scheduled(fixedRate = 3600000) // runs every hour
+    // Checks every hour by default
+    // First run waits a minute so DataSeeder has created the statuses
+    @Scheduled(initialDelay = 60000, fixedRateString = "${escalation.check-interval-ms:3600000}")
     public void checkAndEscalate() {
 
         Status escalatedStatus = statusRepository.findByName("ESCALATED")
@@ -37,7 +44,7 @@ public class EscalationScheduler {
 
         for (Complaint c : complaints) {
 
-            //  null-safe status check — avoids NullPointerException
+            // Skip rows with missing data
             if (c.getStatus() == null) continue;
             if (c.getCreatedAt() == null) continue;
 
@@ -45,8 +52,8 @@ public class EscalationScheduler {
             String statusName = c.getStatus().getName();
             if (statusName.equals("RESOLVED") || statusName.equals("ESCALATED") || c.isEscalated()) continue;
 
-            // Escalate if older than 1 hour and still not resolved
-            if (c.getCreatedAt().isBefore(LocalDateTime.now().minusHours(1))) {
+            // Escalate if it has been open longer than the limit
+            if (c.getCreatedAt().isBefore(LocalDateTime.now().minusHours(escalateAfterHours))) {
                 Status oldStatus = c.getStatus();
 
                 c.setStatus(escalatedStatus);

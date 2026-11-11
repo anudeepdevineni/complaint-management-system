@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# build.sh — build the whole app into ONE runnable JAR.
+# build.sh - builds the whole app into one runnable JAR.
 #
 # It builds the React frontend, copies the output into the Spring Boot
 # backend's static folder, then packages the backend. The resulting JAR

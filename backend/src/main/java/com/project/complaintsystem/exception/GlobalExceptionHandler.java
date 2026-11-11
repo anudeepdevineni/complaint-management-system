@@ -1,11 +1,10 @@
 package com.project.complaintsystem.exception;
 
-import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 
@@ -13,23 +12,17 @@ import java.util.Map;
  * Catches exceptions thrown anywhere in the controllers/services and turns them
  * into clean JSON responses with the right HTTP status code, e.g.
  *   { "status": 400, "error": "Wrong password" }
- *
- * Before this class every error came back as a blank HTTP 500, so the frontend
- * could only show a generic "something went wrong" message.
+ * The frontend shows the "error" text to the user.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Anything JWT-related (expired, malformed, bad signature) means "not authenticated".
-    @ExceptionHandler(JwtException.class)
-    public ResponseEntity<Map<String, Object>> handleJwt(JwtException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "Invalid or expired session. Please log in again.");
-    }
+    // Missing tokens and wrong roles are handled earlier, in SecurityConfig.
 
-    // A missing "Authorization" header should be a clean 401, not a 500.
-    @ExceptionHandler(MissingRequestHeaderException.class)
-    public ResponseEntity<Map<String, Object>> handleMissingHeader(MissingRequestHeaderException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "Missing authentication token.");
+    // A request for a file that doesn't exist is a 404, not a server error.
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "Not found.");
     }
 
     // Our services throw RuntimeException with a readable message. We pick a
